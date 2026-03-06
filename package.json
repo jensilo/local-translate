@@ -1,0 +1,111 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "local-translate",
+  "title": "LocalTranslate",
+  "description": "Translate selected text between Swedish, English, and German using a local Ollama model",
+  "icon": "extension-icon.png",
+  "author": "jens",
+  "categories": [
+    "Productivity"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "swedish-to-english",
+      "title": "Swedish → English",
+      "description": "Translate selected Swedish text to English",
+      "mode": "view"
+    },
+    {
+      "name": "english-to-swedish",
+      "title": "English → Swedish",
+      "description": "Translate selected English text to Swedish",
+      "mode": "view"
+    },
+    {
+      "name": "swedish-to-german",
+      "title": "Swedish → German",
+      "description": "Translate selected Swedish text to German",
+      "mode": "view"
+    },
+    {
+      "name": "german-to-swedish",
+      "title": "German → Swedish",
+      "description": "Translate selected German text to Swedish",
+      "mode": "view"
+    },
+    {
+      "name": "german-to-english",
+      "title": "German → English",
+      "description": "Translate selected German text to English",
+      "mode": "view"
+    },
+    {
+      "name": "english-to-german",
+      "title": "English → German",
+      "description": "Translate selected English text to German",
+      "mode": "view"
+    },
+    {
+      "name": "translation-history",
+      "title": "Translation History",
+      "description": "Browse and copy past translations",
+      "mode": "view",
+      "icon": "extension-icon.png"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "ollamaHost",
+      "title": "Ollama Host",
+      "description": "URL where Ollama is running",
+      "type": "textfield",
+      "required": false,
+      "default": "http://localhost:11434"
+    },
+    {
+      "name": "ollamaModel",
+      "title": "Ollama Model",
+      "description": "The model to use for translation",
+      "type": "textfield",
+      "required": false,
+      "default": "translategemma:latest"
+    },
+    {
+      "name": "inputMethod",
+      "title": "Input Method",
+      "description": "Where to read text from when a translation command is triggered",
+      "type": "dropdown",
+      "required": false,
+      "default": "selection",
+      "data": [
+        {
+          "title": "Selected Text",
+          "value": "selection"
+        },
+        {
+          "title": "Clipboard (copy text first, then translate)",
+          "value": "clipboard"
+        }
+      ]
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.94.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^1.0.11",
+    "@types/node": "20.8.10",
+    "@types/react": "18.3.3",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}
