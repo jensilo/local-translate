@@ -1,12 +1,18 @@
 import { getPreferenceValues } from "@raycast/api";
 
 interface Preferences {
-  ollamaHost: string;
-  ollamaModel: string;
+  unslothApiKey: string;
+  unslothHost: string;
+  unslothModel: string;
+  translationContext: string;
 }
 
-interface OllamaResponse {
-  response: string;
+interface UnslothResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -15,7 +21,16 @@ const LANGUAGE_NAMES: Record<string, string> = {
   DE: "German",
 };
 
-function buildPrompt(
+function buildSystemPrompt(context: string): string {
+  const basePrompt =
+    "You translate faithfully between Swedish, English, and German. Return only the translation. Preserve meaning, tone, terminology, formatting, names, code, URLs, and line breaks.";
+
+  return context.trim()
+    ? `${basePrompt}\n\nContext: ${context.trim()}`
+    : basePrompt;
+}
+
+function buildUserPrompt(
   text: string,
   sourceCode: string,
   targetCode: string,
@@ -23,10 +38,7 @@ function buildPrompt(
   const sourceLang = LANGUAGE_NAMES[sourceCode];
   const targetLang = LANGUAGE_NAMES[targetCode];
 
-  return `You are a professional ${sourceLang} (${sourceCode}) to ${targetLang} (${targetCode}) translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceLang} text while adhering to ${targetLang} grammar, vocabulary, and cultural sensitivities.
-Produce only the ${targetLang} translation, without any additional explanations or commentary. Please translate the following ${sourceLang} text into ${targetLang}:
-
-${text}`;
+  return `Translate from ${sourceLang} (${sourceCode}) to ${targetLang} (${targetCode}).\n\nText:\n${text}`;
 }
 
 export async function translate(
@@ -34,33 +46,48 @@ export async function translate(
   sourceCode: string,
   targetCode: string,
 ): Promise<string> {
-  const { ollamaHost, ollamaModel } = getPreferenceValues<Preferences>();
+  const { unslothApiKey, unslothHost, unslothModel, translationContext } =
+    getPreferenceValues<Preferences>();
 
-  const host = ollamaHost.replace(/\/$/, "");
-  const prompt = buildPrompt(text, sourceCode, targetCode);
+  if (!unslothApiKey.trim()) {
+    throw new Error(
+      "Set an Unsloth API key in this extension's Raycast preferences.",
+    );
+  }
 
-  const response = await fetch(`${host}/api/generate`, {
+  const host = unslothHost.replace(/\/$/, "");
+  const response = await fetch(`${host}/chat/completions`, {
     method: "POST",
     headers: {
+      Authorization: `Bearer ${unslothApiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: ollamaModel,
-      prompt,
+      model: unslothModel,
+      messages: [
+        { role: "system", content: buildSystemPrompt(translationContext) },
+        {
+          role: "user",
+          content: buildUserPrompt(text, sourceCode, targetCode),
+        },
+      ],
+      temperature: 0.2,
+      enable_thinking: false,
       stream: false,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Ollama error (${response.status}): ${errorText}`);
+    throw new Error(`Unsloth error (${response.status}): ${errorText}`);
   }
 
-  const data = (await response.json()) as OllamaResponse;
-  if (!data.response) {
+  const data = (await response.json()) as UnslothResponse;
+  const translation = data.choices?.[0]?.message?.content?.trim();
+  if (!translation) {
     throw new Error(
-      "Ollama returned an empty or unexpected response. Is the model loaded?",
+      "Unsloth returned an empty or unexpected response. Is the model loaded?",
     );
   }
-  return data.response.trim();
+  return translation;
 }

@@ -8,12 +8,16 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 type ExtensionPreferences = {
-  /** Ollama Host - URL where Ollama is running */
-  "ollamaHost": string,
-  /** Ollama Model - The model to use for translation */
-  "ollamaModel": string,
+  /** Unsloth API Key - API key created in Unsloth Desktop. It is sent only to the configured local server. */
+  "unslothApiKey": string,
+  /** Unsloth API URL - OpenAI-compatible Unsloth API base URL */
+  "unslothHost": string,
+  /** Unsloth Model - The loaded Unsloth model ID for translation */
+  "unslothModel": string,
+  /** Translation Context - Optional terminology and audience guidance for every translation */
+  "translationContext": string,
   /** Input Method - Where to read text from when a translation command is triggered */
-  "inputMethod": "clipboard" | "selection"
+  "inputMethod": "selection" | "clipboard"
 }
 
 /** Preferences accessible in all the extension's commands */

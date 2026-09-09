@@ -25,23 +25,35 @@ interface Props {
   targetLang: string;
 }
 
-async function getInputText(inputMethod: "clipboard" | "selection", sourceLang: string): Promise<string> {
+async function getInputText(
+  inputMethod: "clipboard" | "selection",
+  sourceLang: string,
+): Promise<string> {
   if (inputMethod === "clipboard") {
     const text = await Clipboard.readText();
     if (!text?.trim()) {
-      throw new Error(`Clipboard is empty — copy some ${sourceLang} text first, then run this command.`);
+      throw new Error(
+        `Clipboard is empty — copy some ${sourceLang} text first, then run this command.`,
+      );
     }
     return text.trim();
   } else {
     const text = await getSelectedText();
     if (!text?.trim()) {
-      throw new Error(`No text selected — select some ${sourceLang} text first, then run this command.`);
+      throw new Error(
+        `No text selected — select some ${sourceLang} text first, then run this command.`,
+      );
     }
     return text.trim();
   }
 }
 
-export function TranslateView({ sourceCode, targetCode, sourceLang, targetLang }: Props) {
+export function TranslateView({
+  sourceCode,
+  targetCode,
+  sourceLang,
+  targetLang,
+}: Props) {
   const [translated, setTranslated] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,11 +99,23 @@ export function TranslateView({ sourceCode, targetCode, sourceLang, targetLang }
       try {
         const result = await translate(text, sourceCode, targetCode);
         setTranslated(result);
-        await addToHistory({ sourceText: text, translatedText: result, sourceLang, targetLang });
-        await showToast({ style: Toast.Style.Success, title: "Translation ready" });
+        await addToHistory({
+          sourceText: text,
+          translatedText: result,
+          sourceLang,
+          targetLang,
+        });
+        await showToast({
+          style: Toast.Style.Success,
+          title: "Translation ready",
+        });
       } catch (err) {
         setError(String(err));
-        await showToast({ style: Toast.Style.Failure, title: "Translation failed", message: String(err) });
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Translation failed",
+          message: String(err),
+        });
       } finally {
         setIsLoading(false);
       }
@@ -104,7 +128,10 @@ export function TranslateView({ sourceCode, targetCode, sourceLang, targetLang }
     <ActionPanel>
       {!isLoading && translated && (
         <>
-          <Action.CopyToClipboard title="Copy Translation" content={translated} />
+          <Action.CopyToClipboard
+            title="Copy Translation"
+            content={translated}
+          />
           <Action.CopyToClipboard
             title="Copy Source Text"
             content={sourceText}
