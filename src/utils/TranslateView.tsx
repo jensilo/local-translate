@@ -10,7 +10,7 @@ import {
   showToast,
   Toast,
 } from "@raycast/api";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { addToHistory } from "./history";
 import { translate } from "./translate";
 
@@ -59,11 +59,15 @@ export function TranslateView({
   const [isLoading, setIsLoading] = useState(true);
   const [sourceText, setSourceText] = useState<string>("");
   const [refreshCount, setRefreshCount] = useState(0);
+  const hasStartedRun = useRef(false);
+  const runVersion = useRef(0);
 
   const title = `${sourceLang} → ${targetLang}`;
   const { inputMethod } = getPreferenceValues<Preferences>();
 
   const refresh = useCallback(() => {
+    runVersion.current += 1;
+    hasStartedRun.current = false;
     setTranslated("");
     setError(null);
     setSourceText("");
@@ -72,6 +76,15 @@ export function TranslateView({
   }, []);
 
   useEffect(() => {
+    // Raycast local extensions run under React Strict Mode, which invokes an
+    // Effect setup twice. Only the first setup may start a translation.
+    if (hasStartedRun.current) {
+      return;
+    }
+    hasStartedRun.current = true;
+    const currentRunVersion = runVersion.current;
+    const isCurrentRun = () => runVersion.current === currentRunVersion;
+
     // Reset state at the start of every run (covers Raycast caching the component between opens)
     setTranslated("");
     setError(null);
@@ -84,11 +97,16 @@ export function TranslateView({
       try {
         text = await getInputText(inputMethod, sourceLang);
       } catch (err) {
-        setError(String(err));
-        setIsLoading(false);
+        if (isCurrentRun()) {
+          setError(String(err));
+          setIsLoading(false);
+        }
         return;
       }
 
+      if (!isCurrentRun()) {
+        return;
+      }
       setSourceText(text);
 
       await showToast({
@@ -98,6 +116,10 @@ export function TranslateView({
 
       try {
         const result = await translate(text, sourceCode, targetCode);
+        if (!isCurrentRun()) {
+          return;
+        }
+
         setTranslated(result);
         await addToHistory({
           sourceText: text,
@@ -105,11 +127,19 @@ export function TranslateView({
           sourceLang,
           targetLang,
         });
+        if (!isCurrentRun()) {
+          return;
+        }
+
         await showToast({
           style: Toast.Style.Success,
           title: "Translation ready",
         });
       } catch (err) {
+        if (!isCurrentRun()) {
+          return;
+        }
+
         setError(String(err));
         await showToast({
           style: Toast.Style.Failure,
@@ -117,7 +147,9 @@ export function TranslateView({
           message: String(err),
         });
       } finally {
-        setIsLoading(false);
+        if (isCurrentRun()) {
+          setIsLoading(false);
+        }
       }
     }
 
