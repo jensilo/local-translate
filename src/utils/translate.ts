@@ -27,7 +27,7 @@ const inFlightTranslations = new Map<string, Promise<string>>();
 
 function buildSystemPrompt(context: string): string {
   const basePrompt =
-    "You translate faithfully between Swedish, English, and German. Preserve meaning, tone, terminology, formatting, names, code, URLs, and line breaks. Return only a JSON object with one translation string. Never include reasoning, analysis, labels, alternatives, commentary, or quotation marks outside that JSON object.";
+    'You translate faithfully between Swedish, English, and German. Preserve meaning, tone, terminology, formatting, names, code, URLs, and line breaks. Return only a JSON object with one translation string, exactly in this literal shape: {"translation": "<translation>"}. Never include reasoning, analysis, labels, alternatives, commentary, or quotation marks outside that JSON object. For single words or short phrases, immediately pick the single most likely translation.';
 
   return context.trim()
     ? `${basePrompt}\n\nContext: ${context.trim()}`
@@ -74,6 +74,7 @@ async function requestTranslation(
   model: string,
   systemPrompt: string,
   userPrompt: string,
+  sourceText: string,
 ): Promise<string> {
   const response = await fetch(`${host}/chat/completions`, {
     method: "POST",
@@ -90,8 +91,9 @@ async function requestTranslation(
       temperature: 1.0,
       top_p: 0.95,
       top_k: 64,
-      enable_thinking: false,
-      preserve_thinking: false,
+      min_p: 0.0,
+      max_tokens: Math.max(64, Math.min(2048, sourceText.length * 4 + 128)),
+      chat_template_kwargs: { enable_thinking: false },
       response_format: {
         type: "json_schema",
         json_schema: {
@@ -160,6 +162,7 @@ export async function translate(
     unslothModel,
     systemPrompt,
     userPrompt,
+    text,
   );
   inFlightTranslations.set(requestKey, request);
 
